@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       errorString += data.toString();
     });
 
-    return new Promise((resolve) => {
+    return new Promise<NextResponse>((resolve) => {
       pythonProcess.on('close', (code) => {
         if (code !== 0) {
           console.error(`Python script exited with code ${code}: ${errorString}`);
