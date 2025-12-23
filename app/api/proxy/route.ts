@@ -12,26 +12,33 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      }
+    });
 
     if (!response.ok) {
+      console.error(`Proxy fetch failed: ${response.status} ${response.statusText} for URL: ${url}`);
       return NextResponse.json(
-        { error: `Failed to fetch image: ${response.statusText}` },
+        { error: `Failed to fetch image: ${response.status} ${response.statusText}` },
         { status: response.status }
       );
     }
 
     const contentType = response.headers.get("content-type");
-    if (!contentType || !contentType.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "URL does not point to a valid image" },
+    // Allow if content-type is missing or valid image
+    if (contentType && !contentType.startsWith("image/") && !contentType.startsWith("application/octet-stream")) {
+       console.warn(`Proxy rejected content type: ${contentType} for URL: ${url}`);
+       return NextResponse.json(
+        { error: `Invalid content type: ${contentType}` },
         { status: 400 }
       );
     }
 
     const arrayBuffer = await response.arrayBuffer();
     const headers = new Headers();
-    headers.set("Content-Type", contentType);
+    if (contentType) headers.set("Content-Type", contentType);
     headers.set("Cache-Control", "public, max-age=3600");
 
     return new NextResponse(arrayBuffer, {
@@ -39,9 +46,11 @@ export async function GET(request: NextRequest) {
       headers,
     });
   } catch (error) {
-    console.error("Proxy error:", error);
+    // Detailed error logging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Proxy internal error:", errorMessage, "URL:", url);
     return NextResponse.json(
-      { error: "Failed to fetch image" },
+      { error: `Failed to fetch image: ${errorMessage}` },
       { status: 500 }
     );
   }

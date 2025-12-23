@@ -100,7 +100,9 @@ export default function ImageToVideo() {
       const response = await fetch(proxyUrl);
       
       if (!response.ok) {
-        throw new Error(`Failed to load image via proxy: ${response.statusText}`);
+        // Try to parse error text
+        const errText = await response.text().catch(() => response.statusText);
+        throw new Error(`Failed to load image via proxy: ${response.status} - ${errText}`);
       }
       
       const blob = await response.blob();
