@@ -94,6 +94,12 @@ export default function ImageToVideo() {
       new URL(url);
     } catch { showToast("Invalid URL format", "error"); return; }
 
+    // heuristic: check for likely webpage URLs
+    if (!url.match(/\.(jpeg|jpg|gif|png|webp|avif|bmp|svg)$/i) && !url.includes('images') && (url.includes('zillow.com') || url.includes('airbnb.com') || !url.includes('.'))) {
+        showToast("Link might be a webpage, not an image. Right-click image -> Copy Image Address", "info");
+        // We continue anyway just in case, but warn first
+    }
+
     try {
       // Use our proxy to bypass CORS
       const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
@@ -102,7 +108,10 @@ export default function ImageToVideo() {
       if (!response.ok) {
         // Try to parse error text
         const errText = await response.text().catch(() => response.statusText);
-        throw new Error(`Failed to load image via proxy: ${response.status} - ${errText}`);
+        if (response.status === 403) {
+             throw new Error("Access Denied (403). Website blocks bots. Please download image and upload manually.");
+        }
+        throw new Error(`Failed to load: ${response.status} - ${errText}`);
       }
       
       const blob = await response.blob();
@@ -114,7 +123,8 @@ export default function ImageToVideo() {
       showToast("Image added from URL", "success");
     } catch (error) {
       console.error(error);
-      showToast("Failed to load URL. (Check if valid image)", "error");
+      const msg = error instanceof Error ? error.message : "Failed to load URL";
+      showToast(msg.length > 50 ? msg.substring(0, 50) + "..." : msg, "error");
     }
   };
 
