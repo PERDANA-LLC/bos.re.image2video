@@ -1,0 +1,256 @@
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding-bottom: 5rem;
+}
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius);
+    background: var(--bg-panel);
+    border-left: 4px solid var(--primary);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    box-shadow: var(--shadow);
+    color: var(--text-main);
+    animation: slideUp 0.3s ease-out;
+}
+.toastError { border-color: var(--danger); background: rgba(239, 68, 68, 0.2); }
+.toastSuccess { border-color: var(--success); background: rgba(16, 185, 129, 0.2); }
+.toastInfo { border-color: var(--primary); background: rgba(59, 130, 246, 0.2); }
+
+/* Upload Section */
+.uploadSection {
+    background: var(--bg-panel);
+    border: var(--glass-border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    backdrop-filter: blur(var(--backdrop-blur));
+}
+
+.sectionHeader {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.stepNumber {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+.urlInputGroup {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.input {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    color: var(--text-main);
+    outline: none;
+    transition: border-color 0.2s;
+}
+.input:focus { border-color: var(--primary); }
+
+.dropZone {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius);
+    padding: 3rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+.dropZone:hover, .dragOver {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--primary);
+}
+
+.uploadIcon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem auto;
+    color: var(--primary);
+}
+
+/* Workspace */
+.workspace {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+}
+@media (min-width: 1024px) {
+    .workspace { grid-template-columns: 2fr 1fr; }
+}
+
+.previewPanel, .settingsPanel {
+    background: var(--bg-panel);
+    border: var(--glass-border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    backdrop-filter: blur(var(--backdrop-blur));
+}
+
+.panelHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.clearBtn {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.clearBtn:hover { color: var(--danger); }
+
+.imageGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 1rem;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.imageCard {
+    position: relative;
+    aspect-ratio: 16/9;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.imageCard img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.removeBtn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.imageCard:hover .removeBtn { opacity: 1; }
+.removeBtn:hover { background: var(--danger); }
+
+.emptyState {
+    grid-column: 1 / -1;
+    padding: 3rem;
+    text-align: center;
+    color: var(--text-secondary);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+/* Progress */
+.progressContainer {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius);
+}
+.progressBar {
+    height: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+.progressFill {
+    height: 100%;
+    background: linear-gradient(to right, var(--primary), #a855f7);
+    transition: width 0.3s;
+}
+
+/* Result */
+.resultArea {
+    margin-top: 2rem;
+    animation: slideUp 0.5s ease;
+}
+.video {
+    width: 100%;
+    border-radius: var(--radius);
+    background: black;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
+}
+
+/* Settings */
+.settingsStack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+.settingLabel {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+.rangeWrapper {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.rangeValue {
+    font-family: monospace;
+    color: var(--primary);
+    width: 3rem;
+    text-align: right;
+}
+
+.checkboxCard {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.checkboxCard:hover { background: rgba(255, 255, 255, 0.1); }

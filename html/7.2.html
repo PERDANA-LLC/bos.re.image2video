@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cinematic Image to Video Creator</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-panel: #1e1e1e;
+            --bg-input: #2c2c2c;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --text-main: #e5e5e5;
+            --text-muted: #a3a3a3;
+            --border: #404040;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --radius: 8px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+        }
+
+        header { text-align: center; margin-bottom: 2rem; max-width: 600px; }
+        h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(to right, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        p.subtitle { color: var(--text-muted); font-size: 0.95rem; }
+
+        .app-container {
+            width: 100%; max-width: 1000px; background: var(--bg-panel); border-radius: var(--radius);
+            box-shadow: var(--shadow); border: 1px solid var(--border); overflow: hidden; display: flex; flex-direction: column;
+        }
+
+        /* Upload Section */
+        .upload-section { padding: 2rem; border-bottom: 1px solid var(--border); }
+        
+        .drop-zone {
+            border: 2px dashed var(--border); border-radius: var(--radius); padding: 2rem 1.5rem;
+            text-align: center; cursor: pointer; transition: all 0.2s ease; position: relative;
+            margin-bottom: 1rem;
+        }
+        .drop-zone:hover, .drop-zone.drag-over { border-color: var(--primary); background-color: rgba(59, 130, 246, 0.05); }
+        .drop-zone p { color: var(--text-muted); margin-bottom: 1rem; }
+
+        .url-input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            background: var(--bg-input);
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .url-input-group input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            padding: 0.5rem;
+            outline: none;
+        }
+
+        .url-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; padding: 0.6rem 1.2rem;
+            border-radius: var(--radius); border: none; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; font-size: 0.9rem; gap: 0.5rem;
+        }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-primary:disabled { background-color: var(--bg-input); color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
+        
+        .btn-small { padding: 0.4rem 1rem; font-size: 0.85rem; }
+
+        input[type="file"] { display: none; }
+
+        /* Main Workspace */
+        .workspace { display: grid; grid-template-columns: 1fr; gap: 2rem; padding: 2rem; }
+        @media (min-width: 768px) { .workspace { grid-template-columns: 2fr 1fr; } }
+
+        .preview-area { display: flex; flex-direction: column; gap: 1rem; }
+        .section-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+
+        .image-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 1rem;
+            max-height: 400px; overflow-y: auto; padding-right: 5px;
+        }
+        .image-grid::-webkit-scrollbar { width: 6px; }
+        .image-grid::-webkit-scrollbar-track { background: var(--bg-dark); }
+        .image-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        .thumb-card {
+            position: relative; aspect-ratio: 16/9; background: var(--bg-dark); border-radius: 4px;
+            overflow: hidden; border: 1px solid var(--border);
+        }
+        .thumb-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .thumb-remove {
+            position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: white;
+            border: none; width: 20px; height: 20px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; cursor: pointer; font-size: 12px; opacity: 0;
+        }
+        .thumb-card:hover .thumb-remove { opacity: 1; }
+        .thumb-remove:hover { background: var(--danger); }
+
+        /* Settings */
+        .settings-panel {
+            background: var(--bg-input); padding: 1.5rem; border-radius: var(--radius);
+            display: flex; flex-direction: column; gap: 1.5rem; height: fit-content;
+        }
+        .setting-group label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+        .range-wrap { display: flex; align-items: center; gap: 1rem; }
+        input[type="range"] { flex: 1; accent-color: var(--primary); }
+        .value-display { font-variant-numeric: tabular-nums; font-size: 0.9rem; min-width: 3rem; }
+        select {
+            width: 100%; padding: 0.5rem; background: var(--bg-dark); border: 1px solid var(--border);
+            color: var(--text-main); border-radius: 4px;
+        }
+
+        /* Progress & Result */
+        .status-area { margin-top: 1rem; display: none; }
+        .progress-bar { height: 6px; background: var(--bg-dark); border-radius: 3px; overflow: hidden; margin-bottom: 0.5rem; }
+        .progress-fill { height: 100%; background: var(--primary); width: 0%; transition: width 0.1s linear; }
+        .status-text { font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+        .result-area { margin-top: 1.5rem; display: none; animation: fadeIn 0.5s ease; }
+        video { width: 100%; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 1rem; background: black; }
+
+        /* Toast */
+        .toast-container { position: fixed; bottom: 2rem; right: 2rem; display: flex; flex-direction: column; gap: 1rem; z-index: 1000; }
+        .toast {
+            background: var(--bg-panel); border: 1px solid var(--border); padding: 1rem 1.5rem;
+            border-radius: var(--radius); box-shadow: var(--shadow); display: flex; align-items: center;
+            gap: 0.75rem; animation: slideIn 0.3s ease forwards; min-width: 300px;
+        }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.info { border-left: 4px solid var(--primary); }
+
+        @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        #processCanvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Image to Video Creator</h1>
+        <p class="subtitle">Upload files or paste URLs. Generate cinematic videos with music.</p>
+    </header>
+
+    <div class="app-container">
+        <!-- Upload -->
+        <section class="upload-section">
+            
+            <!-- URL Input -->
+            <div class="url-input-group">
+                <input type="text" id="urlInput" placeholder="Paste image URL (https://...)">
+                <button id="addUrlBtn" class="btn btn-primary btn-small">Add</button>
+            </div>
+            <div class="url-hint">Some websites may block external access (CORS). If it fails, try downloading the image first.</div>
+
+            <!-- File Upload -->
+            <div class="drop-zone" id="dropZone">
+                <p>Or Drag & Drop images here</p>
+                <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    Select Files
+                </button>
+                <input type="file" id="fileInput" multiple accept="image/png, image/jpeg, image/jpg, image/webp">
+            </div>
+        </section>
+
+        <!-- Workspace -->
+        <main class="workspace">
+            <div class="preview-area">
+                <div class="section-title">
+                    <span>Selected Images (<span id="imageCount">0</span>)</span>
+                    <button class="btn" style="font-size:0.8rem; padding:0.4rem 0.8rem; background:var(--bg-input); color:var(--text-main)" id="clearAllBtn">Clear All</button>
+                </div>
+                <div class="image-grid" id="imageGrid">
+                    <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius);">No images added yet.</div>
+                </div>
+                
+                <div class="status-area" id="statusArea">
+                    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+                    <div class="status-text" id="statusText">Processing...</div>
+                </div>
+                
+                <div class="result-area" id="resultArea">
+                    <div class="section-title">Your Video</div>
+                    <video id="outputVideo" controls></video>
+                    <a id="downloadBtn" class="btn btn-primary" style="width: 100%; text-decoration: none;">
+                        <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        Download Video
+                    </a>
+                </div>
+            </div>
+
+            <!-- Settings Sidebar -->
+            <aside class="settings-panel">
+                <div class="section-title">Settings</div>
+
+                <div class="setting-group">
+                    <label>Duration per image (seconds)</label>
+                    <div class="range-wrap">
+                        <input type="range" id="durationRange" min="1" max="10" value="3" step="0.5">
+                        <span class="value-display" id="durationValue">3s</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>Resolution</label>
+                    <select id="resolutionSelect">
+                        <option value="1280x720">720p (HD)</option>
+                        <option value="1920x1080" selected>1080p (FHD)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="musicToggle">
+                        Add Cinematic Background Music
+                    </label>
+                    <small style="color: #666; font-size: 0.75rem;">Plays a royalty-free ambient track.</small>
+                </div>
+
+                <button class="btn btn-primary" id="generateBtn" style="width: 100%; margin-top: 1rem;">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    Generate Video
+                </button>
+            </aside>
+        </main>
+    </div>
+
+    <canvas id="processCanvas"></canvas>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        // --- State ---
+        const state = {
+            images: [],
+            isGenerating: false,
+            settings: {
+                duration: 3,
+                resolution: { w: 1920, h: 1080 },
+                addMusic: false
+            }
+        };
+
+        // --- DOM ---
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const urlInput = document.getElementById('urlInput');
+        const addUrlBtn = document.getElementById('addUrlBtn');
+        const imageGrid = document.getElementById('imageGrid');
+        const imageCountSpan = document.getElementById('imageCount');
+        const durationRange = document.getElementById('durationRange');
+        const durationValue = document.getElementById('durationValue');
+        const resolutionSelect = document.getElementById('resolutionSelect');
+        const musicToggle = document.getElementById('musicToggle');
+        const generateBtn = document.getElementById('generateBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const statusArea = document.getElementById('statusArea');
+        const progressFill = document.getElementById('progressFill');
+        const statusText = document.getElementById('statusText');
+        const resultArea = document.getElementById('resultArea');
+        const outputVideo = document.getElementById('outputVideo');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const processCanvas = document.getElementById('processCanvas');
+        const toastContainer = document.getElementById('toastContainer');
+
+        // --- Cinematic Audio URL ---
+        const CINEMATIC_MUSIC_URL = "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=cinematic-atmosphere-11459.mp3";
+
+        // --- Listeners ---
+        
+        // File Upload
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); fileInput.value = ''; });
+
+        // URL Upload
+        addUrlBtn.addEventListener('click', handleUrlUpload);
+        urlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') handleUrlUpload(); });
+
+        // Settings
+        durationRange.addEventListener('input', (e) => {
+            state.settings.duration = parseFloat(e.target.value);
+            durationValue.textContent = state.settings.duration + 's';
+        });
+        resolutionSelect.addEventListener('change', (e) => {
+            const [w, h] = e.target.value.split('x').map(Number);
+            state.settings.resolution = { w, h };
+        });
+        musicToggle.addEventListener('change', (e) => state.settings.addMusic = e.target.checked);
+
+        // Actions
+        clearAllBtn.addEventListener('click', () => {
+            if (state.isGenerating) return;
+            state.images = [];
+            renderGrid();
+            resultArea.style.display = 'none';
+            showToast('All images cleared', 'info');
+        });
+
+        generateBtn.addEventListener('click', startGeneration);
+
+        // --- Core Logic ---
+
+        function handleFiles(files) {
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+            let addedCount = 0;
+            Array.from(files).forEach(file => {
+                if (file.type === 'application/pdf') {
+                    showToast(`Skipped PDF: "${file.name}". Please convert to Image first.`, 'error'); return;
+                }
+                if (validTypes.includes(file.type)) {
+                    addImageToState(file.name, file, null);
+                    addedCount++;
+                } else {
+                    showToast(`Skipped "${file.name}": Invalid format.`, 'error');
+                }
+            });
+            if (addedCount > 0) showToast(`Added ${addedCount} images.`, 'success');
+        }
+
+        async function handleUrlUpload() {
+            const url = urlInput.value.trim();
+            if (!url) {
+                showToast("Please enter a URL", "error");
+                return;
+            }
+
+            // Basic URL validation
+            try {
+                new URL(url);
+            } catch (e) {
+                showToast("Invalid URL format", "error");
+                return;
+            }
+
+            addUrlBtn.disabled = true;
+            addUrlBtn.textContent = "Loading...";
+
+            try {
+                // Fetch the image as a blob to bypass some direct canvas taint issues and handle errors better
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const blob = await response.blob();
+                
+                if (!blob.type.startsWith('image/')) {
+                    throw new Error("URL does not point to an image.");
+                }
+
+                // Create a temporary file-like object
+                const fileName = url.split('/').pop() || 'web-image.jpg';
+                addImageToState(fileName, blob, url);
+
+                urlInput.value = "";
+                showToast("Image added from URL", "success");
+
+            } catch (error) {
+                console.error(error);
+                showToast("Failed to load URL. Check if the site allows external access (CORS).", "error");
+            } finally {
+                addUrlBtn.disabled = false;
+                addUrlBtn.textContent = "Add";
+            }
+        }
+
+        function addImageToState(fileName, dataBlobOrFile, sourceUrl) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    state.images.push({
+                        id: Date.now() + Math.random(),
+                        file: dataBlobOrFile,
+                        name: fileName,
+                        src: e.target.result,
+                        imgObject: img
+                    });
+                    renderGrid();
+                };
+                // Handle both File objects and Blobs
+                reader.readAsDataURL(dataBlobOrFile);
+            };
+            reader.readAsDataURL(dataBlobOrFile);
+        }
+
+        function renderGrid() {
+            imageCountSpan.textContent = state.images.length;
+            imageGrid.innerHTML = '';
+            if (state.images.length === 0) {
+                imageGrid.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--text-muted); border: 1px dashed var(--border); border-radius: var(--radius);">No images added yet.</div>`;
+                return;
+            }
+            state.images.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'thumb-card';
+                card.title = item.name;
+                card.innerHTML = `<img src="${item.src}" alt="Slide"><button class="thumb-remove" onclick="removeImage(${item.id})">×</button>`;
+                imageGrid.appendChild(card);
+            });
+        }
+
+        window.removeImage = function(id) {
+            if (state.isGenerating) return;
+            state.images = state.images.filter(img => img.id !== id);
+            renderGrid();
+        };
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+        }
+
+        // --- Generation Core ---
+
+        async function startGeneration() {
+            if (state.images.length < 2) { showToast("Please add at least 2 images.", "error"); return; }
+            if (state.isGenerating) return;
+
+            state.isGenerating = true;
+            generateBtn.disabled = true;
+            clearAllBtn.disabled = true;
+            statusArea.style.display = 'block';
+            resultArea.style.display = 'none';
+            progressFill.style.width = '0%';
+
+            const { w, h } = state.settings.resolution;
+            processCanvas.width = w;
+            processCanvas.height = h;
+            const ctx = processCanvas.getContext('2d');
+
+            // 1. Setup Stream
+            const stream = processCanvas.captureStream(30);
+
+            // 2. Setup Audio
+            let audioSourceNode = null;
+            let audioContext = null;
+            let musicElement = null;
+
+            if (state.settings.addMusic) {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioContext();
+                    const dest = audioContext.createMediaStreamDestination();
+
+                    musicElement = new Audio(CINEMATIC_MUSIC_URL);
+                    musicElement.crossOrigin = "anonymous";
+                    musicElement.loop = true;
+                    musicElement.volume = 0.4;
+
+                    audioSourceNode = audioContext.createMediaElementSource(musicElement);
+                    const gainNode = audioContext.createGain();
+                    gainNode.gain.value = 1.0;
+
+                    audioSourceNode.connect(gainNode);
+                    gainNode.connect(dest); // Record
+                    gainNode.connect(audioContext.destination); // Hear
+
+                    if (dest.stream.getAudioTracks().length > 0) stream.addTrack(dest.stream.getAudioTracks()[0]);
+
+                    if (audioContext.state === 'suspended') await audioContext.resume();
+                    await musicElement.play();
+
+                } catch (err) {
+                    console.error("Audio setup failed", err);
+                    showToast("Could not load background music. Continuing without audio.", "error");
+                }
+            } else {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                const ctxAudio = new AudioContext();
+                const dest = ctxAudio.createMediaStreamDestination();
+                const osc = ctxAudio.createOscillator();
+                const gain = ctxAudio.createGain();
+                gain.gain.value = 0;
+                osc.connect(gain);
+                gain.connect(dest);
+                osc.start();
+                stream.addTrack(dest.stream.getAudioTracks()[0]);
+            }
+
+            // 3. Setup Recorder
+            let mimeType = 'video/webm;codecs=vp9';
+            if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+            
+            const recorder = new MediaRecorder(stream, {
+                mimeType: mimeType,
+                videoBitsPerSecond: 5000000
+            });
+
+            const chunks = [];
+            recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+            recorder.onstop = () => {
+                if (musicElement) { musicElement.pause(); musicElement = null; }
+                if (audioContext) { audioContext.close(); }
+
+                const blob = new Blob(chunks, { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                outputVideo.src = url;
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                downloadBtn.href = url;
+                downloadBtn.download = `cinematic-video.${ext}`;
+                
+                state.isGenerating = false;
+                generateBtn.disabled = false;
+                clearAllBtn.disabled = false;
+                statusArea.style.display = 'none';
+                resultArea.style.display = 'block';
+                showToast('Video generated successfully!', 'success');
+            };
+
+            recorder.start();
+
+            // 4. Animation Loop
+            const transitionDuration = 1.0;
+            const holdDuration = state.settings.duration;
+            const fps = 30;
+            const totalFrames = state.images.length * (holdDuration + transitionDuration) * fps;
+            let currentFrame = 0;
+
+            function drawImageCover(img, offsetX = 0, offsetY = 0, scale = 1) {
+                const canvasRatio = w / h;
+                const imgRatio = img.width / img.height;
+                let renderW, renderH;
+                if (imgRatio > canvasRatio) { renderH = h; renderW = h * imgRatio; } 
+                else { renderW = w; renderH = w / imgRatio; }
+                const centerX = w / 2; const centerY = h / 2;
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.scale(scale, scale);
+                ctx.translate(-centerX, -centerY);
+                ctx.drawImage(img, centerX - renderW / 2 + offsetX, centerY - renderH / 2 + offsetY, renderW, renderH);
+                ctx.restore();
+            }
+
+            for (let i = 0; i < state.images.length; i++) {
+                const currentImg = state.images[i].imgObject;
+                const nextImg = state.images[(i + 1) % state.images.length].imgObject;
+                const motion = { scaleStart: 1.0, scaleEnd: 1.08, panX: (Math.random() - 0.5) * 40, panY: (Math.random() - 0.5) * 40 };
+
+                // Phase 1: Hold
+                const holdFrames = holdDuration * fps;
+                for (let f = 0; f < holdFrames; f++) {
+                    const progress = f / holdFrames;
+                    const scale = motion.scaleStart + (motion.scaleEnd - motion.scaleStart) * progress;
+                    const offX = motion.panX * progress;
+                    const offY = motion.panY * progress;
+                    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
+                    drawImageCover(currentImg, offX, offY, scale);
+                    currentFrame++;
+                    if (currentFrame % 5 === 0) updateProgress(currentFrame, totalFrames);
+                    await new Promise(r => setTimeout(r, 1000 / fps));
+                }
+
+                // Phase 2: Transition
+                if (i < state.images.length - 1) {
+                    const transFrames = transitionDuration * fps;
+                    const transType = Math.floor(Math.random() * 3);
+                    const nextMotion = { scaleStart: 1.0, scaleEnd: 1.08, panX: (Math.random() - 0.5) * 40, panY: (Math.random() - 0.5) * 40 };
+                    for (let f = 0; f < transFrames; f++) {
+                        const progress = f / transFrames;
+                        const ease = t => t * (2 - t);
+                        ctx.fillStyle = "#000"; ctx.fillRect(0, 0, w, h);
+
+                        // Draw Current
+                        if (transType === 0) { ctx.globalAlpha = 1 - ease(progress); drawImageCover(currentImg, motion.panX, motion.panY, motion.scaleEnd); }
+                        else if (transType === 1) { drawImageCover(currentImg, motion.panX - (ease(progress)*w), motion.panY, motion.scaleEnd); }
+                        else if (transType === 2) { ctx.globalAlpha = 1 - ease(progress); drawImageCover(currentImg, motion.panX, motion.panY, motion.scaleEnd + 0.2); }
+
+                        // Draw Next
+                        if (transType === 0) { ctx.globalAlpha = ease(progress); drawImageCover(nextImg, 0, 0, nextMotion.scaleStart); }
+                        else if (transType === 1) { drawImageCover(nextImg, nextMotion.panX + (w - ease(progress)*w), nextMotion.panY, nextMotion.scaleStart); }
+                        else if (transType === 2) { ctx.globalAlpha = ease(progress); drawImageCover(nextImg, 0, 0, nextMotion.scaleStart + 0.2); }
+
+                        ctx.globalAlpha = 1.0;
+                        currentFrame++;
+                        if (currentFrame % 5 === 0) updateProgress(currentFrame, totalFrames);
+                        await new Promise(r => setTimeout(r, 1000 / fps));
+                    }
+                }
+            }
+            recorder.stop();
+        }
+
+        function updateProgress(frame, total) {
+            const pct = Math.min(100, Math.round((frame / total) * 100));
+            progressFill.style.width = `${pct}%`;
+            statusText.textContent = `Processing... ${pct}%`;
+        }
+    </script>
+</body>
+</html>
