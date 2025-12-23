@@ -94,12 +94,44 @@ export default function ImageToVideo() {
       new URL(url);
     } catch { showToast("Invalid URL format", "error"); return; }
 
-    // heuristic: check for likely webpage URLs
-    if (!url.match(/\.(jpeg|jpg|gif|png|webp|avif|bmp|svg)$/i) && !url.includes('images') && (url.includes('zillow.com') || url.includes('airbnb.com') || !url.includes('.'))) {
-        showToast("Link might be a webpage, not an image. Right-click image -> Copy Image Address", "info");
-        // We continue anyway just in case, but warn first
+    // special handling for Zillow pages
+    if (url.includes('zillow.com') && !url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+        showToast("Zillow listing detected. Extracting properties...", "info");
+        try {
+            const res = await fetch(`/api/extract?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            
+            if (!res.ok) throw new Error(data.error || 'Extraction failed');
+            if (data.images && Array.isArray(data.images) && data.images.length > 0) {
+                // Load all images via proxy to avoid CORS
+                let count = 0;
+                for (const imgUrl of data.images) {
+                    // Limit to first 20 to avoid overwhelming
+                    if (count >= 20) break;
+                    try {
+                        const proxyUrl = `/api/proxy?url=${encodeURIComponent(imgUrl)}`;
+                        const imgRes = await fetch(proxyUrl);
+                        if(imgRes.ok) {
+                            const blob = await imgRes.blob();
+                            addImageToState(`zillow-${count}.jpg`, blob);
+                            count++;
+                        }
+                    } catch (e) { console.error("Failed to load extracted image", e); }
+                }
+                showToast(`Imported ${count} images from Zillow`, "success");
+                urlInputRef.current.value = "";
+                return;
+            } else {
+                throw new Error("No images found on this page.");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast(`Extraction failed: ${e instanceof Error ? e.message : 'Unknown error'}`, "error");
+            return;
+        }
     }
 
+    // fallback to single image proxy
     try {
       // Use our proxy to bypass CORS
       const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
