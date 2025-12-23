@@ -95,8 +95,14 @@ export default function ImageToVideo() {
     } catch { showToast("Invalid URL format", "error"); return; }
 
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      // Use our proxy to bypass CORS
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+      const response = await fetch(proxyUrl);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to load image via proxy: ${response.statusText}`);
+      }
+      
       const blob = await response.blob();
       if (!blob.type.startsWith('image/')) throw new Error("URL does not point to an image.");
       
@@ -106,7 +112,7 @@ export default function ImageToVideo() {
       showToast("Image added from URL", "success");
     } catch (error) {
       console.error(error);
-      showToast("Failed to load URL. check CORS.", "error");
+      showToast("Failed to load URL. (Check if valid image)", "error");
     }
   };
 
