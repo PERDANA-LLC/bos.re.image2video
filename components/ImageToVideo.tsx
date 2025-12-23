@@ -79,6 +79,7 @@ export default function ImageToVideo() {
       if (!e.target?.result) return;
       const src = e.target.result as string;
       const img = new Image();
+      
       img.onload = () => {
         setImages(prev => [...prev, {
           id: Date.now() + Math.random(),
@@ -87,7 +88,19 @@ export default function ImageToVideo() {
           src,
           imgObject: img
         }]);
+        
+        // Auto-scroll to timeline
+        const timeline = document.querySelector(`.${styles.previewPanel}`);
+        if(timeline) {
+            timeline.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
       };
+
+      img.onerror = () => {
+        console.error(`Failed to load image: ${fileName}`);
+        showToast(`Failed to render image: ${fileName}`, "error");
+      };
+
       img.src = src;
     };
     reader.readAsDataURL(dataBlobOrFile);
