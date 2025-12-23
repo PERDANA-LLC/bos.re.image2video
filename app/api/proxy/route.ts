@@ -14,7 +14,8 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Referer': url // Some sites check this
       }
     });
 
@@ -26,19 +27,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const contentType = response.headers.get("content-type");
-    // Allow if content-type is missing or valid image
-    if (contentType && !contentType.startsWith("image/") && !contentType.startsWith("application/octet-stream")) {
-       console.warn(`Proxy rejected content type: ${contentType} for URL: ${url}`);
-       return NextResponse.json(
-        { error: `Invalid content type: ${contentType}` },
-        { status: 400 }
-      );
+    const contentType = response.headers.get("content-type") || 'application/octet-stream';
+    const contentLength = response.headers.get("content-length");
+    console.log(`[Proxy] Fetched ${url}. Status: ${response.status}. Type: ${contentType}. Length: ${contentLength}`);
+
+    // Less strict check, just warn
+    if (!contentType.startsWith("image/") && !contentType.startsWith("application/octet-stream")) {
+       console.warn(`[Proxy] Suspicious content type: ${contentType} for URL: ${url}`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
     const headers = new Headers();
-    if (contentType) headers.set("Content-Type", contentType);
+    headers.set("Content-Type", contentType);
     headers.set("Cache-Control", "public, max-age=3600");
 
     return new NextResponse(arrayBuffer, {

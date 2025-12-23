@@ -74,20 +74,26 @@ export default function ImageToVideo() {
 
   // Logic: Add Image
   const addImageToState = (fileName: string, dataBlobOrFile: Blob | File) => {
+    console.log(`[addImageToState] Starting for ${fileName}, size: ${dataBlobOrFile.size}, type: ${dataBlobOrFile.type}`);
     const reader = new FileReader();
     reader.onload = (e) => {
+      console.log(`[addImageToState] Reader loaded for ${fileName}`);
       if (!e.target?.result) return;
       const src = e.target.result as string;
       const img = new Image();
       
       img.onload = () => {
-        setImages(prev => [...prev, {
-          id: Date.now() + Math.random(),
-          file: dataBlobOrFile,
-          name: fileName,
-          src,
-          imgObject: img
-        }]);
+        console.log(`[addImageToState] Image object loaded successfully for ${fileName}`);
+        setImages(prev => {
+            console.log(`[addImageToState] Updating state. Previous count: ${prev.length}`);
+            return [...prev, {
+              id: Date.now() + Math.random(),
+              file: dataBlobOrFile,
+              name: fileName,
+              src,
+              imgObject: img
+            }];
+        });
         
         // Auto-scroll to timeline
         const timeline = document.querySelector(`.${styles.previewPanel}`);
@@ -96,40 +102,28 @@ export default function ImageToVideo() {
         }
       };
 
-      img.onerror = () => {
-        console.error(`Failed to load image: ${fileName}`);
+      img.onerror = (err) => {
+        console.error(`[addImageToState] Failed to load image object: ${fileName}`, err);
         showToast(`Failed to render image: ${fileName}`, "error");
       };
 
       img.src = src;
     };
+    reader.onerror = (e) => console.error(`[addImageToState] FileReader error for ${fileName}`, e);
     reader.readAsDataURL(dataBlobOrFile);
   };
 
   // Handlers
   const handleFiles = (files: FileList | null) => {
-    if (!files) return;
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
-    let addedCount = 0;
-    Array.from(files).forEach(file => {
-      if (file.type === 'application/pdf') {
-        showToast(`Skipped PDF: "${file.name}". Please convert to Image first.`, 'error');
-        return;
-      }
-      if (validTypes.includes(file.type)) {
-        addImageToState(file.name, file);
-        addedCount++;
-      } else {
-        showToast(`Skipped "${file.name}": Invalid format.`, 'error');
-      }
-    });
-    if (addedCount > 0) showToast(`Added ${addedCount} images.`, 'success');
+    // ... existing ...
   };
 
   const handleUrlUpload = async () => {
     if (!urlInputRef.current) return;
     const url = urlInputRef.current.value.trim();
     if (!url) { showToast("Please enter a URL", "error"); return; }
+    
+    console.log(`[handleUrlUpload] Processing URL: ${url}`);
     
     try {
       new URL(url);
@@ -139,8 +133,10 @@ export default function ImageToVideo() {
     if (url.includes('zillow.com') && !url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
         showToast("Zillow listing detected. Extracting properties...", "info");
         try {
+            console.log(`[handleUrlUpload] Fetching extraction API...`);
             const res = await fetch(`/api/extract?url=${encodeURIComponent(url)}`);
             const data = await res.json();
+            console.log(`[handleUrlUpload] Extraction result:`, data);
             
             if (!res.ok) throw new Error(data.error || 'Extraction failed');
             if (data.images && Array.isArray(data.images) && data.images.length > 0) {
@@ -150,12 +146,16 @@ export default function ImageToVideo() {
                     // Limit to first 20 to avoid overwhelming
                     if (count >= 20) break;
                     try {
+                        console.log(`[handleUrlUpload] Proxying image ${count}: ${imgUrl}`);
                         const proxyUrl = `/api/proxy?url=${encodeURIComponent(imgUrl)}`;
                         const imgRes = await fetch(proxyUrl);
                         if(imgRes.ok) {
                             const blob = await imgRes.blob();
+                            console.log(`[handleUrlUpload] Got blob for image ${count}, size: ${blob.size}, type: ${blob.type}`);
                             addImageToState(`zillow-${count}.jpg`, blob);
                             count++;
+                        } else {
+                            console.error(`[handleUrlUpload] Proxy failed for ${imgUrl}: ${imgRes.status}`);
                         }
                     } catch (e) { console.error("Failed to load extracted image", e); }
                 }
@@ -174,6 +174,7 @@ export default function ImageToVideo() {
 
     // fallback to single image proxy
     try {
+      console.log(`[handleUrlUpload] Proxying single URL...`);
       // Use our proxy to bypass CORS
       const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
       const response = await fetch(proxyUrl);
@@ -181,6 +182,7 @@ export default function ImageToVideo() {
       if (!response.ok) {
         // Try to parse error text
         const errText = await response.text().catch(() => response.statusText);
+        console.error(`[handleUrlUpload] Proxy fetch failed: ${response.status} - ${errText}`);
         if (response.status === 403) {
              throw new Error("Access Denied (403). Website blocks bots. Please download image and upload manually.");
         }
@@ -188,6 +190,7 @@ export default function ImageToVideo() {
       }
       
       const blob = await response.blob();
+      console.log(`[handleUrlUpload] Single image blob received. Size: ${blob.size}, Type: ${blob.type}`);
       if (!blob.type.startsWith('image/')) throw new Error("URL does not point to an image.");
       
       const fileName = url.split('/').pop() || 'web-image.jpg';
