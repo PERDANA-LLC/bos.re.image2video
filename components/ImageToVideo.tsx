@@ -1,6 +1,64 @@
-'use client';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 
-import React, { useState, useRef, useEffect } from 'react';
+// ... existing imports ...
+
+// Place this inside component logic
+const handleDownloadZip = async () => {
+    if (images.length === 0) return;
+    const zip = new JSZip();
+    const folder = zip.folder("images");
+    
+    if (!folder) return;
+
+    // Add images to zip
+    images.forEach((img) => {
+        // img.file is Blob or File
+        folder.file(img.name, img.file);
+    });
+
+    try {
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(content, "images.zip");
+        showToast("Images downloaded!", "success");
+    } catch (e) {
+        console.error("Failed to zip", e);
+        showToast("Failed to create zip file", "error");
+    }
+};
+
+// ... inside render return ...
+
+// Modify "Timeline" header section to include button
+<div className={styles.sectionHeader} style={{ marginBottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span className={styles.stepNumber} style={{ background: 'rgba(192, 132, 252, 0.2)', color: '#c084fc' }}>2</span>
+        Timeline ({images.length})
+    </div>
+    
+    <div style={{ display: 'flex', gap: '8px' }}>
+         {images.length > 0 && (
+            <>
+                <button 
+                    onClick={handleDownloadZip} 
+                    className="btn" 
+                    style={{ 
+                        padding: '0.25rem 0.75rem', 
+                        fontSize: '0.8rem',
+                        background: 'rgba(59, 130, 246, 0.2)', 
+                        color: '#60a5fa',
+                        border: '1px solid rgba(59, 130, 246, 0.3)'
+                    }}
+                >
+                    Download ZIP
+                </button>
+                <button onClick={() => { if(!isGenerating) setImages([]); }} className={styles.clearBtn}>
+                    Clear All
+                </button>
+            </>
+        )}
+    </div>
+</div>
 import styles from './ImageToVideo.module.css';
 
 // Types
